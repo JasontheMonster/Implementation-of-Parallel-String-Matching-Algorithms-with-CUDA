@@ -5,10 +5,17 @@ Implement parallel string matching algorithms with CUDA in C
 ### Implement brute force algorithm using CUDA
 #### Global memory, share memory, 
 
-### Implements construstion of Witness Array
+### Implements burte force with index eliminating
 
-### Dual Algorithm with binary tree 
+### Implements KMP algorithm
 
-### Brute-force after elimination
+### Benchmark comparison between serialized and naive parallelism
+
+### Improve system
+#### Share memory; Parallel construction of witness array; better finishing string matching; 
+
+### Non-peirodic case
+
+
 
 
