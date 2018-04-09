@@ -21,11 +21,21 @@ __global__ void brute_force(char *text, char *pattern, int *match, int pattern_s
         }
 }
 
-//__global__ void brute_force_refine(char *text, char *pattern, int *index, ){
-  //  for (int i = 0; )
+__global__ void brute_force_refine(char *text, char *pattern, int *index, int *match, int number_of_blocks, int blocksize, int pattern_size){
+    int id = threadIdx.x + blockDim.x*blockIdx.x;
     
+    if (id < number_of_blocks){
+        int flag = 1;
+        int starting_pos = index[id*blocksize];
+        for (int i=0; i<pattern_size; i++){
+            if (text[starting_pos+i] != pattern[i]){
+                flag = 0;
+            }
+        }
+        match[starting_pos] = flag;
+    }
     
-//}
+}
 
 __global__ void nonperiodic_version_binary_tree(char *text, char *pattern, int *output, int *witness_array, int blocksize){
     //get index
@@ -97,26 +107,26 @@ int main(){
        open file
        read file char by char and store in heap
        */
-     FILE *fp;
+    FILE *fp;
     FILE *fp2;
-     char ch;
-     fp = fopen("test.txt", "r");
+    char ch;
+    fp = fopen("test.txt", "r");
     fp2 = fopen("pattern.txt", "r");
     
-     char * text = (char *) malloc (SIZE*sizeof(char)); //size text buffer for text
+    char * text = (char *) malloc (SIZE*sizeof(char)); //size text buffer for text
     char * pattern = (char *) malloc (SIZE*sizeof(char));
     
-     int * match; //size text buffeer for match array
-     int size = 0;
-     int pattern_size = 0;
-     //int blocksize = 32;
+    int * match; //size text buffeer for match array
+    int size = 0;
+    int pattern_size = 0;
+    //int blocksize = 32;
     
-     //read text to buffer
-     while ((ch = getc(fp)) != EOF){
+    //read text to buffer
+    while ((ch = getc(fp)) != EOF){
         text[size] = ch; 
         //match[size] = 0;
         size ++;
-     }
+    }
     
     while ((ch =getc(fp2))!=EOF){
         pattern[pattern_size] = ch;
@@ -134,17 +144,18 @@ int main(){
     
     printf("pattern array: \n");
     for (int i = 0; i < cap_division(pattern_size, 2); i++){
+        printf("1");
         printf("%d ", witness_array[i]);
     }
     
     
     /* GPU init*/
-     //text buffer in device
-     char *dev_text;
-     //pattern buffer in device
-     char *dev_pattern;
-     // match buffer in device
-     int *dev_match;
+    //text buffer in device
+    char *dev_text;
+    //pattern buffer in device
+    char *dev_pattern;
+    // match buffer in device
+    int *dev_match;
     //output buffer in device
     int *dev_output;
     //witness array
@@ -156,29 +167,30 @@ int main(){
     int number_of_blocks = (size + number_of_threads - 1) / number_of_threads;
     
 
-     cudaMalloc((void **)&dev_text, size*sizeof(char));
-     cudaMalloc((void **)&dev_pattern, pattern_size*sizeof(char));
-     cudaMalloc((void **)&dev_match, size*sizeof(int));
+    cudaMalloc((void **)&dev_text, size*sizeof(char));
+    cudaMalloc((void **)&dev_pattern, pattern_size*sizeof(char));
+    cudaMalloc((void **)&dev_match, size*sizeof(int));
     cudaMalloc((void **)&dev_output, sizeof(int)*size);
     cudaMalloc((void **)&dev_witness, sizeof(int)*cap_division(pattern_size, 2));
 
-     cudaMemcpy(dev_text, text, size*sizeof(char), cudaMemcpyHostToDevice);
-     cudaMemcpy(dev_pattern, pattern, pattern_size*sizeof(char), cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_text, text, size*sizeof(char), cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_pattern, pattern, pattern_size*sizeof(char), cudaMemcpyHostToDevice);
     cudaMemcpy(dev_witness, witness_array, cap_division(pattern_size, 2)*sizeof(int), cudaMemcpyHostToDevice);
-     //cudaMemcpy(dev_match, match, size*sizeof(int), cudaMemcpyHostToDevice);
     
-     
      //brute_force<<<1, size>>>(dev_text, dev_pattern, dev_match, pattern_size, size);
-     nonperiodic_version_binary_tree<<<number_of_blocks, number_of_threads>>> (dev_text, dev_pattern, dev_output,
+    nonperiodic_version_binary_tree<<<number_of_blocks, number_of_threads>>> (dev_text, dev_pattern, dev_output,
                                                                                dev_witness, number_of_threads);
+    cudaDeviceSynchronize();
     
-     cudaMemcpy(output, dev_output, size*sizeof(int), cudaMemcpyDeviceToHost);
+    brute_force_refine<<<(size + 1024 - 1) / 1024, 1024>>>(dev_text, dev_pattern, dev_output, dev_match, number_of_blocks ,cap_division(pattern_size, 2), pattern_size);
+    cudaMemcpy(match, dev_match, size*sizeof(int), cudaMemcpyDeviceToHost);
     
-     printf("<<<<result>>>> \n");
-     for (int i = 0; i< size; i+=cap_division(pattern_size, 2)){
-         printf("%d ", output[i]);
-     }
-     printf("\n");
+    
+    printf("<<<<result>>>> \n");
+    for (int i = 0; i< size; i++){
+         printf("%d ", match[i]);
+    }
+    printf("\n");
     
     
     
