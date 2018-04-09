@@ -13,9 +13,7 @@ Implement parallel string matching algorithms with CUDA in C
 - [ ] parallel construction of witness array
 - [ ] block level synch
 - [ ] periodic case
-#### Share memory; Parallel construction of witness array; better finishing string matching; 
 
-### Non-peirodic case
 
 
 
