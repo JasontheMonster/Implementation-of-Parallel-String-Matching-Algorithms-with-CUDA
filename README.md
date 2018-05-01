@@ -6,12 +6,11 @@ Implement parallel string matching algorithms with CUDA in C
 
 - [x] Binary tree witness array elimination
 - [x] Brute force after elimination
-- [ ] KMP
 - [ ] modulized with testing
 ### Improve system
-- [ ] share memory; consecutive memory access
+- [x] share memory; consecutive memory access
 - [ ] parallel construction of witness array
-- [ ] block level synch
+- [x] block level synch
 - [ ] periodic case
 
 
