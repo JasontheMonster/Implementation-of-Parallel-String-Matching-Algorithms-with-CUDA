@@ -3,7 +3,7 @@
 
 #include "timerc.h"
 
-#define SIZE 1024*1024
+#define SIZE 1024*1024*16
 #define gerror(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
 {
@@ -176,6 +176,7 @@ void witness_array_cpu(char *pattern, int *witness_array, int pattern_size){
 }
 
 void failure_function_cpu(char *pattern, int *failure_function, int pattern_size){
+    
     failure_function[0] = 0;
     
     int k = 1;
@@ -187,33 +188,41 @@ void failure_function_cpu(char *pattern, int *failure_function, int pattern_size
             failure_function[k] = j;
             k ++;
         }else{
-            if (j ==0){
+            if (j !=0){
+                k = failure_function[k-1];
+            }else{
                 failure_function[k] =0;
                 k++;
-            }else{
-                k = failure_function[k-1];
             }
         }
     }
 }
 
 void serial_string_matching_KMP(char *text, char *pattern, int pattern_size, int text_size, int *failure_function){
+    
+    //index for text
     int i = 0;
+    //index for pattern
     int j = 0;
+    
     while (i < text_size){
+        
+        //if matching increment both index
         if (pattern[j] == text[i]){
             j++;
             i++;
         }
+        
+        //if match the pattern print message
         if (j == pattern_size){
-            printf("found at index %d \n", i-j);
+            //printf("found at index %d \n", i-j);
             j = failure_function[j-1];
         }
         else if ( i < text_size && pattern[j] != text[i]){
-            if (j == 0){
-                i +=1;
-            }else{
+            if (j != 0){
                 j = failure_function[j-1];
+            }else{
+                i+=1;
             }
         }
         
@@ -249,6 +258,7 @@ int main(){
     float gpuTime1;
     float gpuTime2;
     float gpuTime3;
+    float cpuTime1;
     
     //read text to buffer
     while ((ch = getc(fp)) != EOF){
@@ -273,11 +283,12 @@ int main(){
         match[i] = -1;
     }
     
-    cstart();
+    
     /*malloc wintess array*/
     int *witness_array = (int *)malloc(sizeof(int)*cap_division(pattern_size, 2));
     witness_array_cpu(pattern, witness_array, pattern_size);
     
+    cstart();
     int *failure_function = (int *)malloc(sizeof(int)*(pattern_size));
     failure_function_cpu(pattern, failure_function, pattern_size);
     
@@ -288,8 +299,12 @@ int main(){
       //  printf("%d ", failure_function[i]);
     //}
     
-    //serial_string_matching_KMP(text, pattern, pattern_size, size, failure_function);
+    cstart();
+    serial_string_matching_KMP(text, pattern, pattern_size, size, failure_function);
+    cend(&cpuTime1);
     
+    printf("CPU prepare time: %f", cpuTime);
+    printf("KMP time: %f", cpuTime1);
     /* GPU init*/
     //text buffer in device
     char *dev_text;
