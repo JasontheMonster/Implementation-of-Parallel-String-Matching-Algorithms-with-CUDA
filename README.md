@@ -1,9 +1,10 @@
-# Implementation-of-Parallel-String-Matching-Algorithms-with-CUDA
+#
+Implementation-of-Parallel-String-Matching-Algorithms-with-CUDA
 Implement parallel string matching algorithms with CUDA in C
 
 ## TO DO LIST
 ### Cuda Naive Implementation
-
+- [x] KMP algorithm
 - [x] Binary tree witness array elimination
 - [x] Brute force after elimination
 - [ ] modulized with testing
