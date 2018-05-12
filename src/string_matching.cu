@@ -272,12 +272,16 @@ int main(){
         pattern[pattern_size] = ch;
         pattern_size++;
     }
+    
     size --;
     pattern_size--;
     printf("size %d \n", size);
-    printf("psize %d \n", pattern_size);
+    printf("pattern size %d \n", pattern_size);
+    
     int *output = (int *) malloc (sizeof(int)*size);
     
+    
+    /*initialized match array*/
     match = (int *) malloc (size*sizeof(int));
     for (int i = 0; i < size; i++){
         match[i] = -1;
@@ -293,11 +297,7 @@ int main(){
     failure_function_cpu(pattern, failure_function, pattern_size);
     
     cend(&cpuTime);
-    printf("pattern array: \n");
     
-    //for (int i = 0; i < pattern_size; i++){
-      //  printf("%d ", failure_function[i]);
-    //}
     
     cstart();
     serial_string_matching_KMP(text, pattern, pattern_size, size, failure_function);
@@ -338,19 +338,20 @@ int main(){
     cudaMemcpy(dev_pattern, pattern, pattern_size*sizeof(char), cudaMemcpyHostToDevice);
     cudaMemcpy(dev_witness, witness_array, cap_division(pattern_size, 2)*sizeof(int), cudaMemcpyHostToDevice);
     
-    //printf("%d\n", number_of_blocks);
-    //printf("%d\n", number_of_threads);
-    
     gend(&gpuTime0);
     
     gstart();
+    
     //brute_force<<<(size + 1024 - 1) / 1024, 1024>>>(dev_text, dev_pattern, dev_match, pattern_size, size);
     //nonperiodic_version_binary_tree<<<number_of_blocks, number_of_threads>>> (dev_text, dev_pattern, dev_output, dev_witness, number_of_threads);
     nonperiodic_version_binary_tree_shared_memory<<<number_of_blocks, number_of_threads>>> (dev_text, dev_pattern, dev_blockoutput, dev_witness, number_of_threads);
+    
+    
     cudaDeviceSynchronize();
     gend(&gpuTime1);
     
     gstart();
+    
     //brute_force_refine<<<(size + 1024 - 1) / 1024, 1024>>>(dev_text, dev_pattern, dev_output, dev_match, number_of_blocks ,cap_division(pattern_size, 2), pattern_size);
     brute_force_refine_blockoutput<<<(size + 1024 - 1) / 1024, 1024>>>(dev_text, dev_pattern, dev_blockoutput, dev_match, number_of_blocks ,cap_division(pattern_size, 2), pattern_size);
     gend(&gpuTime2);
@@ -391,11 +392,13 @@ int main(){
     cudaFree(dev_match);
     cudaFree(dev_output);
     cudaFree(dev_witness);
+    cudaFree(dev_blockoutput);
     
     free(text);
     free(pattern);
     free(match);
     free(witness_array);
+    free(failure_function);
     
     printf("CPUTIME: %f, GPUTIME0: %f, GPUTIME1: %f, GPUTIME2:%f, GPUTIME3:%f, TOTAL: %f", cpuTime,gpuTime0, gpuTime1, gpuTime2, gpuTime3, cpuTime+gpuTime1+gpuTime2 + gpuTime0+gpuTime3);
     
